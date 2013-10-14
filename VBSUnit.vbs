@@ -4,7 +4,7 @@ Option Explicit
 '!
 '! @author  miyamiya <rai.caver@gmail.com>
 '! @date    2013/08/14
-'! @version 0.1
+'! @version 0.2
 Class VBSUnit
 
     '! ログを記録する
@@ -17,12 +17,12 @@ Class VBSUnit
     '! @var name         string メソッド名
     Private name
 
-    '! 結果をコンソール上に表示する
+    '! 結果を返す
     '!
     '! @param  void
-    '! @return void
-    Public Function getResult
-        getResut = dic
+    '! @return           object Dictionary Object
+    Public Function getResult()
+        Set getResult = dic
     End Function
 
     '! メソッド名をセットする
@@ -38,240 +38,154 @@ Class VBSUnit
         dic(name).Add "error"  , CreateObject("Scripting.Dictionary")
     End Property
 
-    '! 2つの変数(数値、文字、配列)が等しくない時に失敗を報告する
+    '! 2つの変数(数値、文字、配列)が等しいときに成功
     '!
-    '! @see    isEqual
+    '! @see    assertEqualsLogic
     '! @param  theExpected   mixed 検査する左辺
     '! @param  theActual     mixed 検査する右辺
     '! @return               text 状態(success, failure, error)
     Public Function assertEquals(theExpected, theActual)
-        Dim rtn : rtn = isEqual(theExpected, theActual)
-        Select Case rtn
-            Case True
-                assertEquals = addSuccess("Arg1:" & toStringValue(theExpected) & ", Arg2:" & toStringValue(theActual))
-            Case False
-                assertEquals = addFailure("Arg1:" & toStringValue(theExpected) & ", Arg2:" & toStringValue(theActual))
-            Case Else
-                assertEquals = addError(rtn)
-        End Select
+        assertEquals = assertEqualsLogic(theExpected, theActual, True)
     End Function
 
-    '! 2つの変数(数値、文字、配列)が等しい時に失敗を報告する
+    '! 2つの変数(数値、文字、配列)が等しくないとき成功
     '!
-    '! @see    isEqual
+    '! @see    assertEqualsLogic
     '! @param  theExpected     mixed 検査する左辺
     '! @param  theActual       mixed 検査する右辺
     '! @return void
     Public Function assertNotEquals(theExpected, theActual)
-        Dim rtn : rtn = isEqual(theExpected, theActual)
-        Select Case rtn
-            Case False
-                assertNotEquals = addSuccess("Arg1:" & toStringValue(theExpected) & ", Arg2:" & toStringValue(theActual))
-            Case True
-                assertNotEquals = addFailure("Arg1:" & toStringValue(theExpected) & ", Arg2:" & toStringValue(theActual))
-            Case Else
-                assertNotEquals = addError(rtn)
-        End Select
+          assertNotEquals = assertEqualsLogic(theExpected, theActual, False)
     End Function
 
-    '! 変数が FALSE の時に失敗を報告する
+    '! 変数が True のときに成功
     '!
-    '! @param  theA     boolean 検査する値
+    '! @see    assertBooleanLogic
+    '! @param  theCondition   boolean 検査する値
     '! @return void
-    Public Function assertTrue(theA)
-        If VarType(theA) <> vbBoolean Then
-            assertTrue = addError("1st Args is not Boolean -> " & toStringValue(theA))
-            Exit Function
-        End If
-
-        If theA = True Then
-            assertTrue = addSuccess("Arg1:" & toStringValue(theA))
-            Exit Function
-        End If
-        assertTrue = addFailure("Arg1:" & toStringValue(theA))
+    Public Function assertTrue(theCondition)
+        assertTrue = assertBooleanLogic(theCondition, True)
     End Function
 
-
-    '! 変数が True の時に失敗を報告する
+    '! 変数が False のときに成功
     '!
-    '! @param  theA     boolean 検査する値
+    '! @see    assertBooleanLogic
+    '! @param  theCondition   boolean 検査する値
     '! @return void
-    Public Function assertFalse(theA)
-        If VarType(theA) <> vbBoolean Then
-            assertFalse = addError("1st Args is not Boolean -> " & toStringValue(theA))
-            Exit Function
-        End If
-
-        If theA = False Then
-            assertFalse = addSuccess("Arg1:" & toStringValue(theA))
-            Exit Function
-        End If
-        assertFalse = addFailure("Arg1:" & toStringValue(theA))
+    Public Function assertFalse(theCondition)
+        assertFalse = assertBooleanLogic(theCondition, False)
     End Function
 
-    '! 変数が Null 以外の時に失敗を報告する
+    '! 変数が Null のときに成功
+    '!
+    '! @param  theCondition   mixed 検査する値
+    '! @return void
+    Public Function assertNull(theCondition)
+        If IsNull(theCondition) = True Then
+            assertNull = addSuccess(gen1ArgToMsg(theCondition))
+            Exit Function
+        End If
+        assertNull = addFailure(gen1ArgToMsg(theCondition))
+    End Function
+
+    '! 変数が Null 以外のときに成功
     '!
     '! @param  theA     mixed 検査する値
     '! @return void
-    Public Function assertNull(theA)
-        If IsNull(theA) = True Then
-            assertNull = addSuccess("Arg1:" & toStringValue(theA))
+    Public Function assertNotNull(theCondition)
+        If IsNull(theCondition) = False Then
+            assertNotNull = addSuccess(gen1ArgToMsg(theCondition))
             Exit Function
         End If
-        assertNull = addFailure("Arg1:" & toStringValue(theA))
+        assertNotNull = addFailure(gen1ArgToMsg(theCondition))
     End Function
 
-    '! 変数が Null の時に失敗を報告する
+
+    '! 変数の値が空のときに成功
     '!
-    '! @param  theA     mixed 検査する値
+    '! @param  theCondition   mixed 検査する値
     '! @return void
-    Public Function assertNotNull(theA)
-        If IsNull(theA) = False Then
-            assertNotNull = addSuccess("Arg1:" & toStringValue(theA))
+    Public Function assertEmpty(theCondition)
+        If is_empty(theCondition) = True Then
+            assertEmpty = addSuccess(gen1ArgToMsg(theCondition))
             Exit Function
         End If
-        assertNotNull = addFailure("Arg1:" & toStringValue(theA))
+        assertEmpty = addFailure(gen1ArgToMsg(theCondition))
     End Function
 
-    '! 変数が 空でない時に失敗を報告する
+    '! 変数の値が空でないときに成功
     '!
-    '! @param  theA     mixed 検査する値
+    '! @param  theCondition   mixed 検査する値
     '! @return void
-    Public Function assertEmpty(theA)
-        If is_empty(theA) = True Then
-            assertEmpty = addSuccess("Arg1:" & toStringValue(theA))
+    Public Function assertNotEmpty(theCondition)
+        If is_empty(theCondition) = False Then
+            assertNotEmpty = addSuccess(gen1ArgToMsg(theCondition))
             Exit Function
         End If
-        assertEmpty = addFailure("Arg1:" & toStringValue(theA))
+        assertNotEmpty = addFailure(gen1ArgToMsg(theCondition))
     End Function
 
-    '! 変数が 空の時に失敗を報告する
+    '! 第2引数の配列の中に、第1引数が含まれているときに成功
     '!
-    '! @param  theA     mixed 検査する値
-    '! @return void
-    Public Function assertNotEmpty(theA)
-        If is_empty(theA) = False Then
-            assertNotEmpty = addSuccess("Arg1:" & toStringValue(theA))
-            Exit Function
-        End If
-        assertNotEmpty = addFailure("Arg1:" & toStringValue(theA))
-    End Function
-
-    '! 第2引数の配列の中に、第1引数が含まれていない時に失敗を報告する
-    '!
-    '! @see    isContains
+    '! @see    assertContainsLogic
     '! @param  theNeedles     mixed 検査対象となる値
     '! @param  theHaystack    array 検査する配列
     '! @return void
     Public Function assertContains(theNeedles, theHaystack)
-        If IsArray(theHaystack) = False or IsObject(theNeedles) = True Then
-            assertContains = addError("Arg1:" & toStringValue(theNeedles) & ", Arg2:" & toStringValue(theHaystack))
-            Exit Function
-        End If
-
-        If (isContains(theNeedles, theHaystack) = True) Then
-            assertContains = addSuccess("Arg1:" & toStringValue(theNeedles) & ", Arg2:" & toStringValue(theHaystack))
-            Exit Function
-        End If
-        assertContains = addFailure("Arg1:" & toStringValue(theNeedles) & ", Arg2:" & toStringValue(theHaystack))
+        assertContains = assertContainsLogic(theNeedles, theHaystack, True)
     End Function
 
-    '! 第2引数の配列の中に、第1引数が含まれている時に失敗を報告する
+    '! 第2引数の配列の中に、第1引数が含まれていないときに成功
     '!
-    '! @see    isContains
+    '! @see    assertContainsLogic
     '! @param  theNeedles     mixed 検査対象となる値
     '! @param  theHaystack    array 検査する配列
     '! @return void
     Public Function assertNotContains(theNeedles, theHaystack)
-        If IsArray(theHaystack) = False or IsObject(theNeedles) = True Then
-            assertNotContains = addError("Arg1:" & toStringValue(theNeedles) & ", Arg2:" & toStringValue(theHaystack))
-            Exit Function
-        End If
-
-        If (isContains(theNeedles, theHaystack) = False) Then
-            assertNotContains = addSuccess("Arg1:" & toStringValue(theNeedles) & ", Arg2:" & toStringValue(theHaystack))
-            Exit Function
-        End If
-        assertNotContains = addFailure("Arg1:" & toStringValue(theNeedles) & ", Arg2:" & toStringValue(theHaystack))
+        assertNotContains = assertContainsLogic(theNeedles, theHaystack, False)
     End Function
 
-
-    '! 第2引数が第1引数で始まっていない時に失敗を報告する
+    '! 第2引数が第1引数で始まっているときに成功
     '!
+    '! @see    assertStringStartsLogic
     '! @param  thePrefix      string 検査対象となる値
     '! @param  theString      string 検査する文字列
     '! @return void
     Public Function assertStringStartsWith(thePrefix, theString)
-        If (VarType(thePrefix) <> vbString Or VarType(theString) <> vbString) Then
-            assertStringStartsWith = addError("Arg1:" & toStringValue(thePrefix) & ", Arg2:" & toStringValue(theString))
-            Exit Function
-        End If
-        If (InStr(theString, thePrefix) = 1) Then
-            assertStringStartsWith = addSuccess("Arg1:" & toStringValue(thePrefix) & ", Arg2:" & toStringValue(theString))
-            Exit Function
-        End If
-        assertStringStartsWith = addFailure("Arg1:" & toStringValue(thePrefix) & ", Arg2:" & toStringValue(theString))
+        assertStringStartsWith = assertStringStartsLogic(thePrefix, theString, False, True)
     End Function
 
-    '! 第2引数が第1引数で始まっている時に失敗を報告する
+    '! 第2引数が第1引数で始まっていないときに成功
     '!
+    '! @see    assertStringStartsLogic
     '! @param  thePrefix      string 検査対象となる値
     '! @param  theString      string 検査する文字列
     '! @return void
     Public Function assertStringStartsNotWith(thePrefix, theString)
-        If (VarType(thePrefix) <> vbString Or VarType(theString) <> vbString) Then
-            assertStringStartsNotWith = addError("Arg1:" & toStringValue(thePrefix) & ", Arg2:" & toStringValue(theString))
-            Exit Function
-        End If
-
-        If (InStr(theString, thePrefix) = 1) Then
-            assertStringStartsNotWith = addFailure("Arg1:" & toStringValue(thePrefix) & ", Arg2:" & toStringValue(theString))
-            Exit Function
-        End If
-        assertStringStartsNotWith = addSuccess("Arg1:" & toStringValue(thePrefix) & ", Arg2:" & toStringValue(theString))
+        assertStringStartsNotWith = assertStringStartsLogic(thePrefix, theString, False, False)
     End Function
 
-
-    '! 第2引数が第1引数で終わっていない時に失敗を報告する
+    '! 第2引数が第1引数で終わっているときに成功
     '!
     '! @param  theSuffix      string 検査対象となる値
     '! @param  theString      string 検査する文字列
     '! @return void
     Public Function assertStringEndsWith(theSuffix, theString)
-        If (VarType(theSuffix) <> vbString Or VarType(theString) <> vbString) Then
-            assertStringEndsWith = addError("Arg1:" & toStringValue(theSuffix) & ", Arg2:" & toStringValue(theString))
-            Exit Function
-        End If
-
-        If (InStr(StrReverse(theString), StrReverse(theSuffix)) = 1) Then
-            assertStringEndsWith = addSuccess("Arg1:" & toStringValue(theSuffix) & ", Arg2:" & toStringValue(theString))
-            Exit Function
-        End If
-        assertStringEndsWith = addFailure("Arg1:" & toStringValue(theSuffix) & ", Arg2:" & toStringValue(theString))
+        assertStringEndsWith = assertStringStartsLogic(theSuffix, theString, True, True)
     End Function
 
-    '! 第2引数が第1引数で終わっている時に失敗を報告する
+    '! 第2引数が第1引数で終わっていないときに成功
     '!
     '! @param  theSuffix      string 検査対象となる値
     '! @param  theString      string 検査する文字列
     '! @return void
     Public Function assertStringEndsNotWith(theSuffix, theString)
-        If (VarType(theSuffix) <> vbString Or VarType(theString) <> vbString) Then
-            assertStringEndsNotWith = addError("Arg1:" & toStringValue(theSuffix) & ", Arg2:" & toStringValue(theString))
-            Exit Function
-        End If
-
-        If (InStr(StrReverse(theString), StrReverse(theSuffix)) = 1) Then
-            assertStringEndsNotWith = addFailure("Arg1:" & toStringValue(theSuffix) & ", Arg2:" & toStringValue(theString))
-            Exit Function
-        End If
-        assertStringEndsNotWith = addSuccess("Arg1:" & toStringValue(theSuffix) & ", Arg2:" & toStringValue(theString))
+        assertStringEndsNotWith = assertStringStartsLogic(theSuffix, theString, True, False)
     End Function
 
-
-    '! 第2引数の型が第1引数でない時に失敗を報告する
+    '! 第2引数の型が第1引数のときに成功
     '!
-    '! @see    equalInternalType
+    '! @see    assertInternalTypeLogic
     '! @param  theExpected    string タイプ
     '!           Empty     ：未初期化
     '!           Null      ：Null 値
@@ -292,20 +206,12 @@ Class VBSUnit
     '! @param  theActual      mixed  検査する値
     '! @return void
     Public Function assertInternalType(theExpected, theActual)
-        If (VarType(theExpected) <> vbString) Then
-            assertInternalType = addError("Arg1:" & toStringValue(theExpected) & ", Arg2:" & toStringValue(theActual))
-            Exit Function
-        End If
-        If (equalInternalType(theExpected, theActual) = True) Then
-            assertInternalType = addSuccess("Arg1:" & toStringValue(theExpected) & ", Arg2:" & toStringValue(theActual))
-            Exit Function
-        End If
-        assertInternalType = addFailure("Arg1:" & toStringValue(theExpected) & ", Arg2:" & toStringValue(theActual))
+        assertInternalType = assertInternalTypeLogic(theExpected, theActual, True)
     End Function
 
-    '! 第2引数の型が第1引数の時に失敗を報告する
+    '! 第2引数の型が第1引数のでないときに成功
     '!
-    '! @see    equalInternalType
+    '! @see    assertInternalTypeLogic
     '! @param  theExpected    string タイプ
     '!           Empty     ：未初期化
     '!           Null      ：Null 値
@@ -326,94 +232,48 @@ Class VBSUnit
     '! @param  theActual      mixed  検査する値
     '! @return void
     Public Function assertNotInternalType(theExpected, theActual)
-        If (VarType(theExpected) <> vbString) Then
-            assertNotInternalType = addError("Arg1:" & toStringValue(theExpected) & ", Arg2:" & toStringValue(theActual))
-            Exit Function
-        End If
-        If (equalInternalType(theExpected, theActual) = False) Then
-            assertNotInternalType = addSuccess("Arg1:" & toStringValue(theExpected) & ", Arg2:" & toStringValue(theActual))
-            Exit Function
-        End If
-        assertNotInternalType = addFailure("Arg1:" & toStringValue(theExpected) & ", Arg2:" & toStringValue(theActual))
+        assertNotInternalType = assertInternalTypeLogic(theExpected, theActual, False)
     End Function
 
-
-
-
-
-
-    '! 第1引数の場所にあるテキストファイルの中から第2引数の文字が含まれていない時に失敗を報告する
+    '! 第1引数の場所にあるテキストファイルの中から第2引数の文字が含まれているときに成功
     '!
-    '| @see    doSearchText
+    '| @see    assertStringEqualsFileLogic
     '! @param  theExpectedFile    string 検査対象となるファイルのパス
     '! @param  theActualString    string 検査する文字列
     '! @return void
     Public Function assertStringEqualsFile(theExpectedFile, theActualString)
-        Dim txt : txt = "Arg1:" & toStringValue(theExpectedFile) & ", Arg2:" & toStringValue(theActualString)
-        If (file_exists(theExpectedFile) = True and VarType(theActualString) = vbString) Then
-            If (doSearchText(theExpectedFile, theActualString) = True) Then
-                assertStringEqualsFile = addSuccess(txt)
-                Exit Function
-            End If
-            assertStringEqualsFile = addFailure(txt)
-            Exit Function
-        End If
-        assertStringEqualsFile = addError(txt)
+        assertStringEqualsFile = assertStringEqualsFileLogic(theExpectedFile, theActualString, True)
     End Function
 
-    '! 第1引数の場所にあるテキストファイルの中から第2引数の文字が含るまれていない時に失敗を報告する
+    '! 第1引数の場所にあるテキストファイルの中から第2引数の文字が含まれていないときに成功
     '!
-    '| @see    doSearchText
+    '| @see    assertStringEqualsFileLogic
     '! @param  thePrefix      string 検査対象となるファイルのパス
     '! @param  theString      string 検査する文字列
     '! @return void
     Public Function assertStringNotEqualsFile(theExpectedFile, theActualString)
-        Dim txt : txt = "Arg1:" & toStringValue(theExpectedFile) & ", Arg2:" & toStringValue(theActualString)
-        If (file_exists(theExpectedFile) = True and VarType(theActualString) = vbString) Then
-            If (doSearchText(theExpectedFile, theActualString) = True) Then
-                assertStringNotEqualsFile = addFailure(txt)
-                Exit Function
-            End If
-            assertStringNotEqualsFile = addSuccess(txt)
-            Exit Function
-        End If
-        assertStringNotEqualsFile = addError(txt)
+        assertStringNotEqualsFile = assertStringEqualsFileLogic(theExpectedFile, theActualString, False)
     End Function
 
-    '! 第1引数の場所にあるテキストファイルと第2引数の場所にあるテキストファイルが違う時に失敗を報告する
+    '! 第1引数の場所にあるテキストファイルと第2引数の場所にあるテキストファイルが同じときに成功
     '!
-    '| @see    doFileDiff
+    '| @see    assertFileEqualsLogic
     '! @param  theExpected    string 検査対象となるファイルのパス
     '! @param  theActual      string 比較対象となるファイルのパス
     '! @return void
     Public Function assertFileEquals(theExpected, theActual)
-        Select Case doFileDiff(theExpected, theActual)
-            Case True
-                assertFileEquals = addSuccess("Arg1:" & toStringValue(theExpected) & ", Arg2:" & toStringValue(theActual))
-            Case False
-                assertFileEquals = addFailure("Arg1:" & toStringValue(theExpected) & ", Arg2:" & toStringValue(theActual))
-            Case Else
-                assertFileEquals = addError("Arg1:" & toStringValue(theExpected) & ", Arg2:" & toStringValue(theActual))
-        End Select
+        assertFileEquals = assertFileEqualsLogic(theExpected, theActual, True)
     End Function
 
 
-    '! 第1引数の場所にあるテキストファイルと第1引数の場所にあるテキストファイルが同じ時に失敗を報告する
+    '! 第1引数の場所にあるテキストファイルと第1引数の場所にあるテキストファイルが違うときに成功
     '!
-    '| @see    doFileDiff
+    '| @see    assertFileEqualsLogic
     '! @param  theExpected    string 検査対象となるファイルのパス
     '! @param  theActual      string 比較対象となるファイルのパス
     '! @return void
     Public Function assertFileNotEquals(theExpected, theActual)
-        Dim txt : txt = "Arg1:" & toStringValue(theExpected) & ", Arg2:" & toStringValue(theActual)
-        Select Case doFileDiff(theExpected, theActual)
-            Case True
-                assertFileNotEquals = addFailure(txt)
-            Case False
-                assertFileNotEquals = addSuccess(txt)
-            Case Else
-                assertFileNotEquals = addError(txt)
-        End Select
+        assertFileNotEquals = assertFileEqualsLogic(theExpected, theActual, False)
     End Function
 
     '! 第1引数の場所にファイルが存在しない時に失敗を報告する
@@ -422,14 +282,14 @@ Class VBSUnit
     '! @param  theFileName      string 検査対象となるファイルのパス
     '! @return void
     Public Function assertFileExists(theFileName)
-        Dim txt : txt = "Arg1:" & toStringValue(theFileName)
         Select Case file_exists(theFileName)
             Case True
-                assertFileExists = addSuccess(txt)
+                assertFileExists = addSuccess(gen1ArgToMsg(theFileName))
             Case False
-                assertFileExists = addFailure(txt)
+                assertFileExists = addFailure(gen1ArgToMsg(theFileName))
             Case Else
-                assertFileExists = addError(txt)
+                assertFileExists = addError("File Not Found."_
+                & vbLf & gen1ArgToMsg(theFileName))
         End Select
     End Function
 
@@ -439,127 +299,328 @@ Class VBSUnit
     '! @param  theFileName      string 検査対象となるファイルのパス
     '! @return void
     Public Function assertFileNotExists(theFileName)
-        Dim txt : txt = "Arg1:" & toStringValue(theFileName)
         Select Case file_exists(theFileName)
             Case True
-                assertFileNotExists = addFailure(txt)
+                assertFileNotExists = addFailure(gen1ArgToMsg(theFileName))
             Case False
-                assertFileNotExists = addSuccess(txt)
+                assertFileNotExists = addSuccess(gen1ArgToMsg(theFileName))
             Case Else
-                assertFileNotExists = addError(txt)
+                assertFileNotExists = addError("File Not Found."_
+                & vbLf & gen1ArgToMsg(theFileName))
         End Select
     End Function
 
     '! theExpected < theActual の時に成功、それ以外で失敗を報告する
     '!
+    '! @see    assertRelationalOperatorLogic
     '! @param  theExpected    比較する数値の左辺
     '! @param  theActual      比較する数値の右辺
     '! @return void
     Public Function assertGreaterThan(theExpected, theActual)
-        Dim txt : txt = "Arg1:" & toStringValue(theExpected) & ", Arg2:" & toStringValue(theActual)
-        If (is_numeric(theExpected) = False or is_numeric(theActual) = False) Then
-            assertGreaterThan = addError(txt)
-            Exit Function
-        End If
-        If (theExpected < theActual) Then
-            assertGreaterThan = addSuccess(txt)
-            Exit Function
-        End If
-        assertGreaterThan = addFailure(txt)
+        assertGreaterThan = assertRelationalOperatorLogic(theExpected, theActual, "<")
     End Function
 
     '! theExpected <= theActual の時に成功、それ以外で失敗を報告する
     '!
+    '! @see    assertRelationalOperatorLogic
     '! @param  theExpected    比較する数値の左辺
     '! @param  theActual      比較する数値の右辺
     '! @return void
     Public Function assertGreaterThanOrEqual(theExpected, theActual)
-        Dim txt : txt = "Arg1:" & toStringValue(theExpected) & ", Arg2:" & toStringValue(theActual)
-        If (is_numeric(theExpected) = False or is_numeric(theActual) = False) Then
-            assertGreaterThanOrEqual = addError(txt)
-            Exit Function
-        End If
-        If (theExpected <= theActual) Then
-            assertGreaterThanOrEqual = addSuccess(txt)
-            Exit Function
-        End If
-        assertGreaterThanOrEqual = addFailure(txt)
+        assertGreaterThanOrEqual = assertRelationalOperatorLogic(theExpected, theActual, "<=")
     End Function
 
     '! theExpected > theActual の時に成功、それ以外で失敗を報告する
     '!
+    '! @see    assertRelationalOperatorLogic
     '! @param  theExpected    比較する数値の左辺
     '! @param  theActual      比較する数値の右辺
     '! @return void
     Public Function assertLessThan(theExpected, theActual)
-        Dim txt : txt = "Arg1:" & toStringValue(theExpected) & ", Arg2:" & toStringValue(theActual)
-        If (is_numeric(theExpected) = False or is_numeric(theActual) = False) Then
-            assertLessThan = addError(txt)
-            Exit Function
-        End If
-        If (theExpected > theActual) Then
-            assertLessThan = addSuccess(txt)
-            Exit Function
-        End If
-        assertLessThan = addFailure(txt)
+        assertLessThan = assertRelationalOperatorLogic(theExpected, theActual, ">")
     End Function
 
     '! theExpected >= theActual の時に成功、それ以外で失敗を報告する
     '!
+    '! @see    assertRelationalOperatorLogic
     '! @param  theExpected    比較する数値の左辺
     '! @param  theActual      比較する数値の右辺
     '! @return void
     Public Function assertLessThanOrEqual(theExpected, theActual)
-        Dim txt : txt = "Arg1:" & toStringValue(theExpected) & ", Arg2:" & toStringValue(theActual)
-        If (is_numeric(theExpected) = False or is_numeric(theActual) = False) Then
-            assertLessThanOrEqual = addError(txt)
-            Exit Function
-        End If
-        If (theExpected >= theActual) Then
-            assertLessThanOrEqual = addSuccess(txt)
-            Exit Function
-        End If
-        assertLessThanOrEqual = addFailure(txt)
+        assertLessThanOrEqual = assertRelationalOperatorLogic(theExpected, theActual, ">=")
     End Function
 
     '! 第2引数の配列の要素数と第1引数が違う時に失敗を報告する
     '!
+    '! @see    assertCountLogic
     '! @param  theExpectedCount  integer 比較する数字
     '! @param  theHaystack       array 対象の配列
     '! @return void
     Public Function assertCount(theExpectedCount, theHaystack)
-        Dim txt : txt = "Arg1:" & toStringValue(theExpectedCount) & ", Arg2:" & toStringValue(theHaystack)
-        If (is_numeric(theExpectedCount) = False Or usedArray(theHaystack) = False) Then
-            assertCount = addError(txt)
-            Exit Function
-        End If
-        If ((UBound(theHaystack) - LBound(theHaystack) + 1) = theExpectedCount) Then
-            assertCount = addSuccess(txt)
-            Exit Function
-        End If
-        assertCount = addFailure(txt)
+        assertCount = assertCountLogic(theExpectedCount, theHaystack, True)
     End Function
 
 
     '! 第2引数の配列の要素数と第1引数が同じ時に失敗を報告する
     '!
+    '! @see    assertCountLogic
     '! @param  theExpectedCount  integer 比較する数字
     '! @param  theHaystack       array 対象の配列
     '! @return void
     Public Function assertNotCount(theExpectedCount, theHaystack)
-        Dim txt : txt = "Arg1:" & toStringValue(theExpectedCount) & ", Arg2:" & toStringValue(theHaystack)
-        If (is_numeric(theExpectedCount) = False Or usedArray(theHaystack) = False) Then
-            assertNotCount = addError(txt)
-            Exit Function
-        End If
-        If ((UBound(theHaystack) - LBound(theHaystack) + 1) = theExpectedCount) Then
-            assertNotCount = addFailure(txt)
-            Exit Function
-        End If
-        assertNotCount = addSuccess(txt)
+        assertNotCount = assertCountLogic(theExpectedCount, theHaystack, False)
     End Function
 
-    '--- Private Method ---
+    '! assertEquals, assertNotEquals のロジック部分
+    '!
+    '! @param  theExpectedCount  integer 比較する数字
+    '! @param  theHaystack       array 対象の配列
+    '! @param  theFlg            boolean 成功の時の返り値
+    '! @return                   text 状態(success, failure, error)
+    Private Function assertCountLogic(theExpectedCount, theHaystack, theFlg)
+        If (is_numeric(theExpectedCount) = False) Then
+            assertCountLogic = addError("1st Arg Not Numeric."_
+                & vbLf & gen2ArgToMsg(theExpectedCount, theHaystack))
+            Exit Function
+        End If
+        If (usedArray(theHaystack) = False) Then
+            assertCountLogic = addError("2st Arg cann't used array."_
+                & vbLf & gen2ArgToMsg(theExpectedCount, theHaystack))
+            Exit Function
+        End If
+
+        If (((UBound(theHaystack) - LBound(theHaystack) + 1) = theExpectedCount) = theFlg) Then
+            assertCountLogic = addSuccess(gen2ArgToMsg(theExpectedCount, theHaystack))
+            Exit Function
+        End If
+        assertCountLogic = addFailure(gen2ArgToMsg(theExpectedCount, theHaystack))
+    End Function
+
+    '--- Private Method (Logic) ---------------------------------------------
+
+    '! assertEquals, assertNotEquals のロジック部分
+    '!
+    '! @see    isEqual
+    '! @param  theExpected   mixed   検査する左辺
+    '! @param  theActual     mixed   検査する右辺
+    '! @param  theFlg        boolean 成功の時の返り値
+    '! @return               text 状態(success, failure, error)
+    Private Function assertEqualsLogic(theExpected, theActual, theFlg)
+        On Error Resume Next
+        Dim rtn : rtn  = isEqual(theExpected, theActual)
+        Dim emsg: emsg = genErrorMsg()
+        On Error Goto 0
+
+        If (emsg <> "") Then
+            assertEqualsLogic = addError(_
+                emsg & vbLf & gen2ArgToMsg(theExpected, theActual))
+            Exit Function
+        End If
+
+        Select Case rtn
+            Case theFlg
+                assertEqualsLogic = addSuccess(gen2ArgToMsg(theExpected, theActual))
+            Case Else
+                assertEqualsLogic = addFailure(gen2ArgToMsg(theExpected, theActual))
+        End Select
+    End Function
+
+    '! assertEquals, assertNotEquals のロジック部分
+    '!
+    '! @param  theCondition  mixed   検査する値
+    '! @param  theFlg        boolean 成功の時の返り値
+    '! @return               text 状態(success, failure, error)
+    Private Function assertBooleanLogic(theCondition, theFlg)
+        If VarType(theCondition) <> vbBoolean Then
+            assertBooleanLogic = addError("1st Args is not Boolean"_
+                & vbLf & gen1ArgToMsg(theCondition))
+            Exit Function
+        End If
+
+        Select Case theCondition
+            Case theFlg
+                assertBooleanLogic = addSuccess(gen1ArgToMsg(theCondition))
+            Case Else
+                assertBooleanLogic = addFailure(gen1ArgToMsg(theCondition))
+        End Select
+    End Function
+
+    '! assertContains, assertNotContains のロジック部分
+    '!
+    '! @param  theNeedles     mixed 検査対象となる値
+    '! @param  theHaystack    array 検査する配列
+    '! @param  theFlg         boolean 成功の時の返り値
+    '! @return                text 状態(success, failure, error)
+    Private Function assertContainsLogic(theNeedles, theHaystack, theFlg)
+        If IsArray(theHaystack) = False or IsObject(theNeedles) = True Then
+            assertContainsLogic = addError("Args Type Error"_
+                & vbLf & gen2ArgToMsg(theNeedles, theHaystack))
+            Exit Function
+        End If
+
+        If (isContains(theNeedles, theHaystack) = theFlg) Then
+            assertContainsLogic = addSuccess(gen2ArgToMsg(theNeedles, theHaystack))
+            Exit Function
+        End If
+        assertContainsLogic = addFailure(gen2ArgToMsg(theNeedles, theHaystack))
+    End Function
+
+    '! assertStringStartsWith, assertStringStartsNotWith, assertStringEndsWith, assertStringEndsNotWith のロジック部分
+    '!
+    '! @param  theTarget      string 検査対象となる値
+    '! @param  theString      string 検査する文字列
+    '! @param  theReverse     boolean 文字列を反転するなら True
+    '! @param  theFlg         boolean 成功の時の返り値
+    '! @return                text 状態(success, failure, error)
+    Private Function assertStringStartsLogic(byval theTarget, byval theString, theReverse, theFlg)
+        If (VarType(theTarget) <> vbString Or VarType(theString) <> vbString) Then
+            assertStringStartsLogic = addError("Args is Not String"_
+                & vbLf & gen2ArgToMsg(theTarget, theString))
+            Exit Function
+        End If
+
+        If (theReverse = True) Then
+            theTarget = StrReverse(theTarget)
+            theString = StrReverse(theString)
+        End If
+
+        If ((InStr(theString, theTarget) = 1) = theFlg) Then
+            assertStringStartsLogic = addSuccess(gen2ArgToMsg(theTarget, theString))
+            Exit Function
+        End If
+        assertStringStartsLogic = addFailure(gen2ArgToMsg(theTarget, theString))
+    End Function
+
+    '! assertInternalType, assertNotInternalType のロジック部分
+    '!
+    '! @see    equalInternalType
+    '! @param  theExpected   string  タイプ
+    '! @param  theActual     mixed   検査する右辺
+    '! @param  theFlg        boolean 成功の時の返り値
+    '! @return               text 状態(success, failure, error)
+    Private Function assertInternalTypeLogic(theExpected, theActual, theFlg)
+
+        If (VarType(theExpected) <> vbString) Then
+            assertInternalTypeLogic = addError("1st Args is not String"_
+                & vbLf & gen2ArgToMsg(theExpected, theActual))
+            Exit Function
+        End If
+
+        If (equalInternalType(theExpected, theActual) = theFlg) Then
+            assertInternalTypeLogic = addSuccess(gen2ArgToMsg(theExpected, theActual))
+            Exit Function
+        End If
+        assertInternalTypeLogic = addFailure(gen2ArgToMsg(theExpected, theActual))
+    End Function
+
+    '! assertStringEqualsFile, assertStringNotEqualsFile のロジック部分
+    '!
+    '| @see    doSearchText
+    '! @param  thePrefix      string 検査対象となるファイルのパス
+    '! @param  theString      string 検査する文字列
+    '! @param  theFlg         boolean 成功の時の返り値
+    '! @return                text 状態(success, failure, error)
+    Private Function assertStringEqualsFileLogic(theExpectedFile, theActualString, theFlg)
+        If (file_exists(theExpectedFile) = False) Then
+            assertStringEqualsFileLogic = addError("File Not Found"_
+                & vbLf & gen2ArgToMsg(theExpectedFile, theActualString))
+            Exit Function
+        End If
+
+        If (VarType(theActualString) <> vbString) Then
+            assertStringEqualsFileLogic = addError("2st Args is not String"_
+                & vbLf & gen2ArgToMsg(theExpectedFile, theActualString))
+            Exit Function
+        End If
+
+        If ((doSearchText(theExpectedFile, theActualString) = True) = theFlg) Then
+            assertStringEqualsFileLogic = addSuccess(gen2ArgToMsg(theExpectedFile, theActualString))
+            Exit Function
+        End If
+
+        assertStringEqualsFileLogic = addFailure(gen2ArgToMsg(theExpectedFile, theActualString))
+    End Function
+
+    '! assertFileEquals, assertFileNotEquals のロジック部分
+    '!
+    '| @see    doFileDiff
+    '! @param  theExpected    string 検査対象となるファイルのパス
+    '! @param  theActual      string 比較対象となるファイルのパス
+    '! @param  theFlg         boolean 成功の時の返り値
+    '! @return                text 状態(success, failure, error)
+    Private Function assertFileEqualsLogic(theExpected, theActual, theFlg)
+        If (VarType(theExpected) <> vbString) Then
+            assertFileEqualsLogic = addError("1st Args is not String"_
+                & vbLf & gen2ArgToMsg(theExpected, theActual))
+            Exit Function
+        End If
+
+        If (VarType(theActual) <> vbString) Then
+            assertFileEqualsLogic = addError("1st Args is not String"_
+                & vbLf & gen2ArgToMsg(theExpected, theActual))
+            Exit Function
+        End If
+
+        If (file_exists(theExpected) <> True) Then
+            assertFileEqualsLogic = addError("(1st Args) File Not Found."_
+                & vbLf & gen2ArgToMsg(theExpected, theActual))
+            Exit Function
+        End If
+
+        If (file_exists(theActual) <> True) Then
+            assertFileEqualsLogic = addError("(2st Args) File Not Found."_
+                & vbLf & gen2ArgToMsg(theExpected, theActual))
+            Exit Function
+        End If
+
+        If (doFileDiff(theExpected, theActual) = theFlg) Then
+            assertFileEqualsLogic = addSuccess(gen2ArgToMsg(theExpected, theActual))
+            Exit Function
+        End If
+        assertFileEqualsLogic = addFailure(gen2ArgToMsg(theExpected, theActual))
+    End Function
+
+    '! assertGreaterThan, assertGreaterThanOrEqual, assertLessThan, assertLessThanOrEqual のロジック部分
+    '!
+    '! @see    is_numeric
+    '! @param  theExpected    比較する数値の左辺
+    '! @param  theActual      比較する数値の右辺
+    '! @param  theOperator    string 比較演算子
+    '! @return                text 状態(success, failure, error)
+    Private Function assertRelationalOperatorLogic(theExpected, theActual, theOperator)
+        If (is_numeric(theExpected) = False) Then
+            assertRelationalOperatorLogic = addError("1st Arg Not Numeric."_
+                & vbLf & gen2ArgToMsg(theExpected, theActual))
+            Exit Function
+        End If
+        If (is_numeric(theActual) = False) Then
+            assertRelationalOperatorLogic = addError("2st Arg Not Numeric."_
+                & vbLf & gen2ArgToMsg(theExpected, theActual))
+            Exit Function
+        End If
+
+        On Error Resume Next
+        Dim rtn: rtn = eval(theExpected & theOperator & theActual)
+        Dim emsg: emsg = genErrorMsg()
+        On Error Goto 0
+
+        If (emsg <> "") Then
+            assertRelationalOperatorLogic = addError(_
+                emsg & vbLf & gen2ArgToMsg(theExpected, theActual))
+            Exit Function
+        End If
+
+        If (rtn = True) Then
+            assertRelationalOperatorLogic = addSuccess(gen2ArgToMsg(theExpected, theActual))
+            Exit Function
+        End If
+        assertRelationalOperatorLogic = addFailure(gen2ArgToMsg(theExpected, theActual))
+    End Function
+
+
+
+
+    '--- Private Method (Util) ---------------------------------------------
 
     '! ログに吐き出せる形式に変換する
     '!
@@ -598,6 +659,72 @@ Class VBSUnit
         toStringValue = theArg
     End Function
 
+    '! 一つの引数をログ用メッセージに加工する
+    '!
+    '! @param   theArg      mixed:引数
+    '! @return              String:メッセージ
+    Private Function gen1ArgToMsg(theArg)
+        gen1ArgToMsg = "Arg => " & toStringValue(theArg)
+    End Function
+
+    '! 二つの引数をログ用メッセージに加工する
+    '!
+    '! @param   theArg1     mixed:引数
+    '! @param   theArg2     mixed:引数
+    '! @return              String:メッセージ
+    Private Function gen2ArgToMsg(theArg1, theArg2)
+        gen2ArgToMsg = "Arg1 => " & toStringValue(theArg1) _
+                     & ", Arg2 => " & toStringValue(theArg2)
+    End Function
+
+    '! エラーが発生している時にエラーメッセージを返す
+    '!
+    '! @param  void
+    '! @return             エラーメッセージ
+    Private Function genErrorMsg()
+        If (Err.Number = 0) Then
+            genErrorMsg = ""
+            Exit Function
+        End If
+        genErrorMsg = Err.Description & "(" & Err.Number & ")"
+    End Function
+
+    '! 成功のカウンターを進める
+    '!
+    '! @param  theMsg     string 成功メッセージ
+    '! @return void
+    Private Function addSuccess(theMsg)
+        With dic.item(name)
+            .item("success").Add .item("cnt"), theMsg
+            .item("cnt") = .item("cnt") + 1
+        End With
+        addSuccess = "success"
+    End Function
+
+    '! 失敗のカウンターを進める
+    '!
+    '! @param  theMsg     string 失敗メッセージ
+    '! @return void
+    Private Function addFailure(theMsg)
+        With dic.item(name)
+            .item("failure").Add .item("cnt"), theMsg
+            .item("cnt") = .item("cnt") + 1
+        End With
+        addFailure = "failure"
+    End Function
+
+   '! エラーのカウンターを進める
+    '!
+    '! @param  theMsg     string エラーメッセージ
+    '! @return void
+    Private Function addError(theMsg)
+        With dic.item(name)
+            .item("error").Add .item("cnt"), theMsg
+            .item("cnt") = .item("cnt") + 1
+        End With
+        addError = "error"
+    End Function
+
     '! コンストラクタ
     '!
     '! @param  void
@@ -614,43 +741,6 @@ Class VBSUnit
         Set dic = Nothing
     End Sub
 
-    '! 成功のカウンターを進める
-    '!
-    '! @param  theMsg     string 成功メッセージ
-    '! @return void
-    Private Function addSuccess(theMsg)
-        With dic.item(name)
-            .item("cnt") = .item("cnt") + 1
-            .item("success").Add .item("cnt"), theMsg
-        End With
-        addSuccess = "success"
-    End Function
-
-    '! 失敗のカウンターを進める
-    '!
-    '! @param  theMsg     string 失敗メッセージ
-    '! @return void
-    Private Function addFailure(theMsg)
-        With dic.item(name)
-            .item("cnt") = .item("cnt") + 1
-            .item("failure").Add .item("cnt"), theMsg
-        End With
-        addFailure = "failure"
-    End Function
-
-   '! エラーのカウンターを進める
-    '!
-    '! @param  theMsg     string エラーメッセージ
-    '! @return void
-    Private Function addError(theMsg)
-        With dic.item(name)
-            .item("cnt") = .item("cnt") + 1
-            .item("error").Add .item("cnt"), theMsg
-        End With
-        addError = "error"
-    End Function
-
-
     '! 2つの変数(数値、文字、配列)が同じか比較する
     '!
     '! @see    isValueEqual, isArrayEqual
@@ -658,16 +748,6 @@ Class VBSUnit
     '! @param  theActual     mixed 検査する右辺
     '! @return               string success:等しい、failure:等しくない, error: エラー
     Private Function isEqual(theExpected, theActual)
-        If (IsObject(theExpected)) Then
-            isEqual = "1st Args is Object"
-            Exit Function
-        End If
-
-        If (IsObject(theActual)) Then
-            isEqual = "2st Args is Object"
-            Exit Function
-        End If
-
         If IsArray(theExpected) = True And IsArray(theActual) = True Then
             isEqual = isArrayEqual(theExpected, theActual)
             Exit Function
@@ -709,12 +789,6 @@ Class VBSUnit
     '! @param  theActual     mixed 検査する右辺
     '! @return               boolean True:等しい、False:等しくない
     Private Function isValueEqual(theExpected, theActual)
-        If IsArray(theExpected) = True Or IsArray(theActual) = True _
-           Or IsObject(theExpected) = True Or IsObject(theActual) = True Then
-            isValueEqual = False
-            Exit Function
-        End If
-
         If IsNull(theExpected) = True And IsNull(theActual) = True Then
             isValueEqual = True
             Exit Function
@@ -861,6 +935,19 @@ Class VBSUnit
         doSearchText = True
     End Function
 
+    '! 引数が数値型なら True を返す
+    '!
+    '! @param  theValue    型を確認する値
+    '! @return             True: 数値、False: 数値以外
+    Private Function is_numeric(theValue)
+        Select Case VarType(theValue)
+            Case vbInteger, vbLong, vbSingle, vbDouble
+                is_numeric = True
+            Case Else
+                is_numeric = False
+        End Select
+    End Function
+
     '! 第1引数の場所にあるテキストファイルと第2引数の場所にあるテキストファイルを比較する
     '!
     '! @param  theExpected    string 検査対象となるファイルのパス
@@ -893,16 +980,5 @@ Class VBSUnit
         file_exists = CreateObject("Scripting.FileSystemObject").FileExists(theFileName)
     End Function
 
-    '! 引数が数値型なら True を返す
-    '!
-    '! @param  theValue    型を確認する値
-    '! @return             True: 数値、False: 数値以外
-    Private Function is_numeric(theValue)
-        Select Case VarType(theValue)
-            Case vbInteger, vbLong, vbSingle, vbDouble
-                is_numeric = True
-            Case Else
-                is_numeric = False
-        End Select
-    End Function
+
 End Class
