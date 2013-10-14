@@ -14,12 +14,12 @@ Auto testing in Directory.
         many       = "false"
         required   = "true"
        />
-      <unnamed
+      <!--unnamed
         name       = "/f:FORMAT"
         helpstring = "Console or HTML. Default Console."
         many       = "false"
         required   = "false"
-       />
+       /-->
       <unnamed
         name       = "/o:OUTPUT_LOGFILE"
         helpstring = "Output directory. Default Current directory."
@@ -37,85 +37,19 @@ Example:
       <comment>
       </comment>
     </runtime>
-    <object id="f"     progid="Scripting.FileSystemObject" />
-    <object id="reg"   progid="VBScript.RegExp" />
-    <object id="shell" progid="WScript.Shell" />
     <script language="VBScript" src="VBSUnit.vbs"></script>
-    <script language="VBScript" src="Debug.Util.class"></script>
+    <script language="VBScript" src="TestRunner.class"></script>
     <script language="VBScript">
     <![CDATA[
-    Option Explicit
+    Dim obj, rtn
+    Set obj = New TestRunner
+    obj.setSilent = False
+    rtn = obj.TestRunner(WScript.Arguments)
 
-    ' Arguments Check End
-    Dim ArgD    ' /d: -> ArgD
-    Dim ArgF    ' /f: -> ArgF
-    Dim ArgO    ' /o: -> ArgO
-    Call checkArguments
-
-    ' Get Target File List
-    reg.IgnoreCase = True
-    reg.pattern = "^test\..*\.(vbs|class)$"
-    Dim files : files = Split(getTargetFile(ArgD), vbTab)
-    Dim file
-
-    ' Test Runner
-    For Each file In files
-      WScript.Echo "file : " & file
-    Next
-
-
-    '------ Function , Sub  ------
-   ' Arguments Check SubRoutine
-   '
-    Private Sub checkArguments
-      With WScript.Arguments
-        If (.Named.Count <= 0 or .Named.Exists("d") = False) Then
-          .showusage
-          WScript.Quit
-        End If
-        ' Directory
-        ArgD = .Named.Item("d")
-        If (f.FolderExists(ArgD) = False) Then
-          WScript.Echo "Directory Not Found. -> " & ArgD
-          WScript.Quit
-        End If
-        ' Format
-        ArgF = .Named.Item("f")
-        If (ArgF <> "HTML") Then
-          ArgF = "Console"
-        End If
-        ' Output Directory
-        ArgO = shell.CurrentDirectory
-        If (.Named.Exists("o")) Then
-          ArgO = f.GetAbsolutePathName(.Named.Item("o"))
-          If (f.FolderExists(ArgO) = False) Then
-            WScript.Echo "Create Directory. -> " & ArgO
-            f.CreateFolder(ArgO)
-          End If
-        End If
-      End With
-    End Sub
-
-    ' Search TestCode
-    '
-    Private Function getTargetFile(thePath)
-        Dim i, j, tmp
-        Dim rtn : rtn = ""
-        Dim sp  : sp = ""
-        For Each i In f.GetFolder(thePath).Files
-          If (reg.Test(i.Name) = True) Then
-            rtn = rtn & sp & i.Path
-            sp = vbTab
-          End If
-        Next
-
-        sp = ""
-        For Each j In f.GetFolder(thePath).Subfolders
-            rtn = rtn & sp & getTargetFile(j.Name)
-            sp = vbTab
-        Next
-        getTargetFile = rtn
-    End Function
+    If (rtn <> True) Then
+        WScript.Echo rtn
+        WScript.Quit
+    End If
     ]]>
     </script>
   </job>
