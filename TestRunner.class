@@ -1,0 +1,488 @@
+'! Test Runner Class
+'!
+'! @author  miyamiya <rai.caver@gmail.com>
+'! @date    2013/10/14
+'! @version 0.1
+Class TestRunner
+    '
+    '! VBScript.RegExp
+    '!
+    '! @var   Object
+    Private reg
+
+    '
+    '! WScript.Shell
+    '!
+    '! @var   Object
+    Private shell
+
+    '
+    '! Scripting.FileSystemObject
+    '!
+    '! @var   Object
+    Private f
+
+    '
+    '! Test Classes
+    '!
+    '! @var   Array
+    Private testfiles()
+
+    '
+    '! Used Test Classes 
+    '!
+    '! @var   Array
+    Private usedfiles()
+
+    '
+    '! Argument /d: -> ArgD
+    '!
+    '! @var   string
+    Private ArgD
+
+    '
+    '! Argument /f: -> ArgF
+    '!
+    '! @var   string
+    Private ArgF
+
+    '
+    '! Argument /o: -> ArgO
+    '!
+    '! @var   string
+    Private ArgO
+
+    '
+    '! Silent Mode
+    '!
+    '! @var   boolean
+    Private silent
+
+    '
+    '! HTML layout
+    '!
+    '! @var   string
+    Private html
+
+    '
+    '! Table layout
+    '!
+    '! @var   string
+    Private table
+
+    '
+    '! Table body
+    '!
+    '! @var   string
+    Private tbody
+
+    '
+    '! Table body for HTML Index 
+    '!
+    '! @var   string
+    Private tindex
+
+    '
+    '! ALL Result
+    '!
+    '! @var   object
+    Private result
+
+
+    '! Set Debug Mode
+    '!
+    '! @param  theFlg      boolean:true->silent, false->no silent
+    '! @return void
+    Public Property Let setSilent(byval theFlg)
+        silent = theFlg
+    End Property
+
+    '
+    '! Run Test Process
+    '!
+    '! @param void
+    '! @return             mixed  True: Success or Error Message(String)
+    Public Function TestRunner(theArgs)
+        Dim rtn
+
+        log("Start Test Runner")
+        log("Check Arguments")
+        rtn = setArguments(theArgs)
+        If (rtn <> True) Then
+            TestRunner = rtn
+            Exit Function
+        End If
+
+        log("Get Test Files")
+        Call getTestFile(ArgD)
+
+        log("Get Used Files")
+        Call getUsedFile(ArgD)
+
+        log("Include Test Files")
+        rtn = includeFiles(testfiles)
+        If (rtn <> True) Then
+            log(rtn)
+            TestRunner = rtn
+            Exit Function
+        End If
+
+        log("Include Used Files")
+        rtn = includeFiles(usedfiles)
+        If (rtn <> True) Then
+            log(rtn)
+            TestRunner = rtn
+            Exit Function
+        End If
+
+        log("Test Process")
+        rtn = proc()
+        If (rtn <> True) Then
+            log(rtn)
+            TestRunner = rtn
+            Exit Function
+        End If
+
+        log("End Test Runner")
+    End Function
+
+    '
+    '! Main Process
+    '!
+    Private Function proc()
+        Dim i, j
+        Dim code, classname
+        Dim funcs, obj
+        For Each i In testfiles
+            If (i <> "") Then
+                classname = getClassName(i)
+                log(vbTab & classname)
+                If (classname = False) Then
+                    proc = "Class Not Found.(" & i & ")"
+                    Exit Function
+                End If
+
+                funcs = getFunctionsName(i)
+                If (Ubound(funcs) = 0) Then
+                    proc = "Function Not Found.(" & i & ")"
+                    Exit Function
+                End If
+
+                Execute("Set obj = New " & classname)
+                For Each j In funcs
+                    log(vbTab & "  ->" & j)
+                    Execute("obj." & j)
+                Next
+                Call genHtml(classname, obj.unit.getResult())
+            End If
+        Next
+        If (result.Count > 0) Then
+            Call genIndexHtml
+        End If
+    End Function
+
+    '
+    '! Generate UnitTestResult to HTML
+    '!
+    '! @param   theFiles   Object  TestResult Dictionary Object
+    '! @return             mixed   Array: Function Name, False: Error
+    Private Function genHtml(theClassName, theUnit)
+        Dim methodNames, methodName
+        methodNames = theUnit.Keys
+
+        Dim layout
+        Dim contents
+        Dim body: body = ""
+        Dim i, state, msg
+
+        ' Success, Failure, Error Counter
+        Dim scnt: scnt = 0
+        Dim fcnt: fcnt = 0
+        Dim ecnt: ecnt = 0
+
+        For Each methodName In methodNames
+            contents = ""
+            layout = Replace(table, "%CAPTION%", methodName)
+            layout = Replace(layout, "%TABLE_TITLE%", "Test Case")
+
+            With theUnit(methodName)
+                For i = 0 To (.Item("cnt")-1)
+                    state = ""
+                    msg = ""
+                    contents = contents & tbody
+                    If (.Item("success").Exists(i)) Then
+                        state = "success"
+                        msg = .Item("success").Item(i)
+                        scnt = scnt + 1
+                    ElseIf (.Item("failure").Exists(i)) Then
+                        state = "failure"
+                        msg = .Item("failure").Item(i)
+                        fcnt = fcnt + 1
+                    ElseIf (.Item("error").Exists(i)) Then
+                        state = "error"
+                        msg = .Item("error").Item(i)
+                        ecnt = ecnt + 1
+                    End If
+                    contents = Replace(contents, "%STATE%", state)
+                    contents = Replace(contents, "%ROW_NAME%", i + 1)
+                    contents = Replace(contents, "%ROW_DETAIL%", msg)
+                    contents = Replace(contents, "%ROW_RESULT%", state)
+                Next
+            End With
+            body = body & Replace(layout, "%TBODY%", contents)
+        Next
+        body = Replace(html, "%BODY%", body)
+        body = Replace(body, "%TITLE%", theClassName)
+        Call makeHtml(theClassName, body)
+
+        result.Add theClassName, CreateObject("Scripting.Dictionary")
+        result(theClassName).Add "success", scnt
+        result(theClassName).Add "failure", fcnt
+        result(theClassName).Add "error", ecnt
+    End Function
+
+    '
+    ' Make Index HTML File
+    '
+    Private Function genIndexHtml()
+        Dim body: body = ""
+        Dim className
+        Dim state
+        For Each className In result
+            body = body & Replace(tindex, "%ROW_NAME%", "<a href=""" & className & ".html"">" & className & "</a>")
+            body = Replace(body, "%ROW_RESULT%", "Test All:%ALL%, Success:%SUCCESS%, Failure:%FAILURE%, Error:%ERROR%")
+            body = Replace(body, "%SUCCESS%", result(className).Item("success"))
+            body = Replace(body, "%FAILURE%", result(className).Item("failure"))
+            body = Replace(body, "%ERROR%",   result(className).Item("error"))
+            body = Replace(body, "%ALL%",     result(className).Item("success") + result(className).Item("failure") + result(className).Item("error"))
+            state = "success"
+            If (result(className).Item("failure") <> 0) Then
+                state = "failure"
+            End If
+            If(result(className).Item("error") <> 0) Then
+                state = "error"
+            End If
+            body = Replace(body, "%STATE%",   state)
+        Next
+        body = Replace(table, "%TBODY%",      body)
+        body = Replace(body,  "%CAPTION%",    "ALL Test")
+        body = Replace(body,  "%TABLE_TITLE%","Class Name")
+        body = Replace(html,  "%BODY%",       body)
+        body = Replace(body,  "%TITLE%",      "TestRunner Index")
+        Call makeHtml("index", body)
+    End Function
+
+    '
+    ' Make HTML File
+    '
+    Private Function makeHtml(theFileName, theBody)
+        With f.CreateTextFile(ArgO & "/" & theFileName & ".html", True, True)
+            .Write(theBody)
+            .Close
+        End With
+    End Function
+
+    '
+    '! Get Functionname in File
+    '!
+    '! @param   theFiles   String  File Path
+    '! @return             mixed   Array: Function Name, False: Error
+    Private Function getFunctionsName(thePath)
+        Dim matches, code
+        ReDim rtn(0)
+        reg.Pattern = "^[\s]*public *(function|sub) *(.*)([(\w)])*"
+        With f.OpenTextFile(thePath)
+            Do Until (.AtEndOfStream)
+                code = .ReadLine
+                Set matches = reg.Execute(code)
+
+                If (matches.Count = 1) Then
+                    If (rtn(Ubound(rtn)) <> "") Then
+                        ReDim Preserve rtn(Ubound(rtn)+1)
+                    End If
+                    rtn(Ubound(rtn)) = matches.Item(0).SubMatches(1)
+                End If
+            Loop
+            .Close
+        End With
+        getFunctionsName = rtn
+    End Function
+
+
+    '
+    '! Get Classname in File
+    '!
+    '! @param   theFiles   String  File Path
+    '! @return             mixed :Classname(String), Error(Boolean:False)
+    Private Function getClassName(thePath)
+        Dim matches, code
+        reg.Pattern = "^class *(.*)"
+
+        With f.OpenTextFile(thePath)
+            Do Until (.AtEndOfStream)
+                code = .ReadLine
+                Set matches = reg.Execute(code)
+                If (matches.Count = 1) Then
+                    getClassName = matches.Item(0).SubMatches(0)
+                    .Close
+                    Exit Function
+                End If
+            Loop
+            .Close
+        End With
+        getClassName = False
+    End Function
+
+
+    '
+    '! Get TestClass File Path
+    '!
+    '! @param   theFiles   Array:File Path
+    '! @return             mixed:Success(Boolean:True), Error Message(String)
+    Private Function includeFiles(theFiles)
+        Dim i
+        On Error Resume Next
+        For Each i In theFiles
+            If (i <> "") Then
+                ExecuteGlobal f.OpenTextFile(i).ReadAll()
+                If (Err.Number <> 0) Then
+                    includeFiles = "includeFiles Error(" & i & ")" _
+                        & vbLf & Err.Description &"("&Err.Number&")"
+                    Exit Function
+                End If
+            End If
+        Next
+        On Error Goto 0
+        includeFiles = True
+    End Function
+
+    '
+    '! Get Used File Path
+    '!
+    '! @param   thePath    String:Directory Path
+    '! @return  void
+    Private Function getUsedFile(thePath)
+        Dim i, j
+
+        For Each i In f.GetFolder(thePath).Files
+            For j = LBound(usedfiles) To UBound(usedfiles)
+                reg.pattern = "^.*\\"& usedfiles(j) &"$"
+                If (reg.Test(i) = True) Then
+                    usedfiles(j) = i
+                End If
+            Next
+        Next
+
+        For Each i In f.GetFolder(thePath).Subfolders
+            getUsedFile(i.Path)
+        Next
+    End Function
+
+    '
+    '! Get TestClass File Path
+    '!
+    '! @param   thePath    String:Directory Path
+    '! @return  void
+    Private Function getTestFile(thePath)
+        Dim i
+        Dim matches
+
+        reg.pattern = "test\.(.*\.class)$"
+        For Each i In f.GetFolder(thePath).Files
+
+            Set matches = reg.Execute(i)
+            If (matches.Count = 1) Then
+                If (testfiles(Ubound(testfiles)) <> "") Then
+                    ReDim Preserve testfiles(Ubound(testfiles)+1)
+                End If
+                If (usedfiles(Ubound(usedfiles)) <> "") Then
+                    ReDim Preserve usedfiles(Ubound(usedfiles)+1)
+                End If
+
+                testfiles(Ubound(testfiles)) = i
+                usedfiles(Ubound(usedfiles)) = matches.Item(0).SubMatches(0)
+            End If
+        Next
+
+        For Each i In f.GetFolder(thePath).Subfolders
+            getTestFile(i.Path)
+        Next
+    End Function
+
+    '
+    '! Arguments Check and Set
+    '!
+    '! @param   theArgs    Object WScript.Arguments
+    '! @return             mixed  True: Success or Error Message(String)
+    Private Function setArguments(theArgs)
+        With theArgs
+            If (.Named.Count <= 0 or .Named.Exists("d") = False) Then
+                theArgs.ShowUsage
+                WScript.Quit
+            End If
+            ' Directory
+            ArgD = .Named.Item("d")
+            If (f.FolderExists(ArgD) = False) Then
+                setArguments = "Directory Not Found. -> " & ArgD
+                Exit Function
+            End If
+            ' Format
+            ' ToDo: Console
+            ArgF = "HTML"
+            ' Output Directory
+            ArgO = shell.CurrentDirectory
+            If (.Named.Exists("o")) Then
+                ArgO = f.GetAbsolutePathName(.Named.Item("o"))
+                If (f.FolderExists(ArgO) = False) Then
+                    f.CreateFolder(ArgO)
+                End If
+            End If
+        End With
+        setArguments = True
+    End Function
+
+    '
+    '! View Log
+    '!
+    '! @param   theFiles   string Error Message
+    '! @return  void
+    Private Function log(theMsg)
+        If (silent = False) Then
+            Dim t
+            t = CDbl(Timer)
+            WScript.Echo "[" & Now & "." & Fix((t - Fix(t)) * 1000)  & "] " & theMsg
+        End If
+    End Function
+
+    '
+    '! Constructor
+    '!
+    Private Sub Class_Initialize
+        Set shell = CreateObject("WScript.Shell")
+        Set reg   = CreateObject("VBScript.RegExp")
+        Set f     = CreateObject("Scripting.FileSystemObject")
+        Set result= CreateObject("Scripting.Dictionary")
+
+        reg.IgnoreCase = True
+        reg.Global = True
+        ReDim testfiles(0)
+        ReDim usedfiles(0)
+        silent = True
+        html = "<!DOCTYPE html><html lang=""ja""><head><meta charset=""UTF-8""><title>%TITLE%</title><style type=""text/css""> * { margin: 0px; padding: 0px; } html { width  : 100%; height : 100%; } body { margin: 0px 20px; position: relative; font-family: ""ÉqÉâÉMÉmäpÉS Pro W3"",""Hiragino Kaku Gothic Pro"",""ÉÅÉCÉäÉI"",Meiryo,sans-serif; } a,a:link, a:visited { text-decoration: none; color: #338833; } a:hover,a:active { color: #777777; } a:focus { outline: none; } article,footer,header,nav,section { display: block; } header, footer, section{ padding: 10px; background-color: #eee; border: 1px silver solid; width: 900px; border-collapse: collapse; } header { background-color: #4a4; color: white; border-bottom: none; } header a, header a:link, header a:visited { text-decoration: none; color: white; } header a:hover,header a:active { color: #aaa; } footer { padding: 5px 10px; color:white; background-color: #4a4; border-top: none; text-align: center; } table { width: 100%; border-collapse: collapse; border: solid 1px black; } th, td { border: 1px solid #4a4; padding: 5px; } th { background-color: #cfc; color: #363; } .col2 { width: 20%; } .col6 { width: 60%; } .col8 { width: 80%; } .success { background-color:#ccf; } .failure{ background-color: pink; } .error { background-color: #f33; }</style></head><body><header><h1><a href=""index.html"">%TITLE%</a></h1></header><section>%BODY%</section><footer><p>&copy; 2013 miyamiya</p></footer></body></html>"
+        table = "<article><table><caption><strong>%CAPTION%</strong></caption><thead><tr><th class=""col2"">%TABLE_TITLE%</th><th colspan=""2"" class=""col8"">result</th></tr></thead><tbody>%TBODY%</tbody></table></article>"
+
+        tbody = "<tr class=""%STATE%""><td class=""col2"">%ROW_NAME%</td><td class=""col2"">%ROW_RESULT%</td><td class=""col6"">%ROW_DETAIL%</td></tr>"
+
+        tindex= "<tr class=""%STATE%""><td class=""col2"">%ROW_NAME%</td><td class=""col8"">%ROW_RESULT%</td></tr>"
+    End Sub
+
+    '
+    '! Destructor
+    '!
+    Private Sub Class_Terminate
+        Set result= Nothing
+        Set f     = Nothing
+        Set reg   = Nothing
+        Set shell = Nothing
+    End Sub
+End Class
