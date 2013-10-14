@@ -1,0 +1,35 @@
+
+Class testHoge
+
+    Public unit
+    Public obj
+
+    Public Function testPlus
+        unit.setName = "testPlus"
+        Call unit.assertEquals(obj.Plus(2,3), 5)
+        Call unit.assertEquals(obj.Plus(-2,5), 3)
+        Call unit.assertEquals(obj.Plus(0,0), 0)
+    End Function
+
+    Public Function testMinus
+        unit.setName = "testMinus"
+        Call unit.assertEquals(obj.Minus(3,3), 0)
+        Call unit.assertEquals(obj.Minus(100,5), 95)
+    End Function
+
+    Public Function testChainCharacter
+        unit.setName = "testChainCharacter"
+        Call unit.assertEquals(obj.chainCharacter("hoge", "fuga"), "hogefuga")
+        Call unit.assertNotEquals(obj.chainCharacter(1, 1), 2)
+    End Function
+
+    Private Sub Class_Initialize
+        Set unit = new VBSUnit
+        Set obj  = new Hoge
+    End Sub
+    Private Sub Class_Terminate
+        Set obj  = Nothing
+        Set unit = Nothing
+    End Sub
+
+End Class

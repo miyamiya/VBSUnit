@@ -1,0 +1,18 @@
+'
+'! Test Class
+'
+Class Fuga
+
+    Public Function Plus(a, b)
+        Plus = a + b
+    End Function
+
+    Public Function Minus(a, b)
+        Minus = a - b
+    End Function
+
+    Public Function chainCharacter(a, b)
+        chainCharacter = a & b
+    End Function
+
+End Class
